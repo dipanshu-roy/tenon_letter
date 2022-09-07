@@ -1,0 +1,179 @@
+<?php
+
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Api extends CI_Controller {
+	public function __construct()
+	{
+		parent::__construct();
+		$this->load->model('Allmodel');
+	}
+    public function get_esi_and_ghi_card(){
+		$postData    = json_decode(file_get_contents('php://input'), true);
+        if(!empty($postData['employee_id'])){
+            $tenon_uan=$this->Allmodel->join_row("SELECT uan_no  from tenon_salary where employee_code='".$postData['employee_id']."'");
+           
+            $pgpl_uan=$this->Allmodel->join_row("SELECT uan_no from  pgpl_salary where employee_code='".$postData['employee_id']."'");
+        
+
+            $rows=$this->Allmodel->getresult('lt_upload_documents',array('employee_id'=>$postData['employee_id']));
+			$esi ='';
+			$ghi ='';
+            if(!empty($rows)){
+                foreach($rows as $row){
+                    $data['id']=$row->id;
+                    $data['employee_id']=$row->employee_id;
+                    $data['document_type']=$row->document_type;
+                    if(!empty($tenon_uan->uan_no)){
+                        $uan = $tenon_uan->uan_no;
+                    }else{
+                        $uan = $pgpl_uan->uan_no;
+                    }
+					
+                    if($row->document_type=='ESI Card'){
+                        $folder="esi_card";
+						$data['document']=base_url('assets/'.$folder.'/document/').$row->document_image;
+						$data['created_at']=$row->created_at;
+                        $data['uan_no']=@$uan;
+						$esi=$data;
+                    }elseif($row->document_type=='GHI Card'){
+                        $folder="ghi_card";
+						 $data['document']=base_url('assets/'.$folder.'/document/').$row->document_image;
+						$data['created_at']=$row->created_at;
+                        $data['uan_no']=@$uan;
+						$ghi=$data;
+                    }
+                   
+                }
+                $print_data=['status_code' => 200,'status'=>'success', 'esi_data' =>$esi,'ghi_data'=>$ghi];
+            }else{
+                $print_data=['status_code' => 404,'status'=>'failed', 'esi_data' =>$esi,'ghi_data'=>$ghi];
+            }
+            echo json_encode($print_data);  
+        }
+    }
+    public function employee_letter(){
+		$postData    = json_decode(file_get_contents('php://input'), true);
+        if(!empty($postData['employee_id'])){
+            $employee_id=$postData['employee_id'];
+            $row=$this->Allmodel->join_row("SELECT a.id,a.letter_serial_number,a.employee_id,a.letter_issue_date,a.confirmation_status,b.name,b.phone_number,b.code,b.company,b.doj,b.address,b.city,b.state,b.role,l.name as branch_name, m.letter_name  FROM `lt_track_letters` as a INNER JOIN guard_master as b on a.employee_id=b.id INNER JOIN default_cio_locations as l on l.id=b.branch INNER JOIN lt_letter_master as m on m.id=a.letter_id WHERE a.employee_id=$employee_id");
+            if(!empty($row)){
+                $encrypt=$this->Allmodel->encrypt($employee_id,KEY);
+                $data['id']=$row->id;
+                $data['employee_id']=$row->employee_id;
+                $data['letter_serial_number']=$row->letter_serial_number;
+                $data['letter_issue_date']=$row->letter_issue_date;
+                $data['name']=$row->name;
+                $data['phone_number']=$row->phone_number;
+                $data['code']=$row->code;
+                $data['doj']=$row->doj;
+                $data['role']=$row->role;
+                $data['branch_name']=$row->branch_name;
+                $data['letter_name']=$row->letter_name;
+                $data['letter_url']="http://mobility.tenon-fm.com/tenon_letter/apointment-letter/".$encrypt;
+                
+                $datas[]=$data;
+                $print_data=['status_code' => 200,'status'=>'success', 'data' =>$datas];
+            }else{
+                $print_data=['status_code' => 200,'status'=>'success', 'data' =>[]];
+            }
+            echo json_encode($print_data);  
+        }
+    }
+
+
+     
+    /**************************************************************Advnace salary API*****************************************************/
+    
+    public function getTermsAndCondition(){
+        $postData    = json_decode(file_get_contents('php://input'), true);
+        if(!empty($postData['language_code'])){ 
+            $language_code = $postData['language_code'];
+           $row=$this->Allmodel->join_row("SELECT a.col_id,a.col_name,a.tab_name,b.language,b.label  FROM `salary_slip_columns` as a INNER JOIN salary_slip_labels as b on a.col_id=b.col_id WHERE b.language='$language_code' AND a.tab_name ='terms-and-conditions'");
+            $data = $row->label;
+            $print_data=['status_code' => 200,'status'=>'success', 'data' =>$data];
+        }else{
+            $data = null;
+            $print_data=['status_code' => 404,'status'=>'failed', 'data' =>$data];
+        }
+        echo json_encode($print_data);  
+    }
+
+    public function getAdvanceSalary(){
+        $postData    = json_decode(file_get_contents('php://input'), true);
+        if(!empty($postData['employee_code'])){ 
+            $employee_id = $postData['employee_code'];
+            $row=$this->Allmodel->join_row("SELECT advance_salary_applicable,code  FROM `guard_master` WHERE code='$employee_id'");
+            if(!empty($row)){
+                $data['show_status']=@$row->advance_salary_applicable;
+                $data['employee_code']=@$row->code;
+                $print_data=['status_code' => 200,'status'=>'success', 'data' =>$data];
+            }else{
+                 $data = [];
+                $print_data=['status_code' => 200,'status'=>'not found', 'data' =>$data];
+            }    
+        }else{
+            $data = [];
+            $print_data=['status_code' => 404,'status'=>'failed', 'data' =>$data];
+        }
+        echo json_encode($print_data);  
+    }
+    
+    public function getWithdrawalLimit(){
+        $postData    = json_decode(file_get_contents('php://input'), true);
+        if(!empty($postData['employee_code'])){ 
+            $employee_id = $postData['employee_code'];
+            $row=$this->Allmodel->join_row("SELECT a.*, b.advance_salary_applicable FROM `advance_salary_withdrawal_limits` as a INNER JOIN `guard_master` as b on a.employeeId=b.code WHERE a.employeeId='$employee_id'");
+            if(!empty($row)){
+                $data['show_status']=@$row->advance_salary_applicable;
+                $data['employee_code']=@$row->employeeId;
+                $data['eran_amount']=@$row->earnedAmount;
+                $data['total_withdrawal_amount']=@$row->maxWithdrawalAmount;  
+                $print_data=['status_code' => 200,'status'=>'success', 'data' =>$data];
+            }else{
+                 $data = [];
+                $print_data=['status_code' => 200,'status'=>'not found', 'data' =>$data];
+            }    
+        }else{
+            $data = [];
+            $print_data=['status_code' => 404,'status'=>'failed', 'data' =>$data];
+        }
+        echo json_encode($print_data);  
+    }
+    
+    
+
+    public function getTransactionHistory(){
+        $postData    = json_decode(file_get_contents('php://input'), true);
+        if(!empty($postData['employee_code'])){  
+            $employee_id = $postData['employee_code'];
+            $rows=$this->Allmodel->join_result("SELECT * FROM advance_salary_transactions WHERE employeeId='$employee_id'");
+            if(!empty($rows)){
+                foreach($rows as $row){
+                    $data['date_time']= @$row->transaction_date;
+                    $data['last_withdrawal_amount']=@$row->amount.'.00';
+                    $data['account_no']=@$row->to_bank_details?@$row->to_bank_details:'';
+                    $data['transaction_id']=@$row->transactionId;
+                    $data['status']=@$row->status;
+                    $datas[] = $data;  
+                }
+                $print_data=['status_code' => 200,'status'=>'success', 'data' =>$datas];
+            }else{
+               $data = [];
+                $print_data=['status_code' => 200,'status'=>'not found', 'data' =>$data];  
+            }
+            
+        }else{
+            $datas = [];
+            $print_data=['status_code' => 404,'status'=>'failed', 'data' =>$datas];
+        }
+        echo json_encode($print_data);  
+    }
+    
+    /**********************************************************************************************************************/
+   
+
+
+
+
+}

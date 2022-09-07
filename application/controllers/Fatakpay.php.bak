@@ -1,0 +1,496 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Fatakpay extends CI_Controller {
+    public function __construct()
+	{
+		parent::__construct();
+		$this->load->model('Allmodel');
+	}
+	/*************************Refine advance salary by himanshu verma************/
+    public function employee_info()
+	{
+        if(!empty($_GET['employeeId'])){
+            $employeeId=$_GET['employeeId'];
+            $emp_data=$this->Allmodel->join_result("SELECT id,code,name,doj,dob,email,active,phone_number,company,apt_net_salary,gender,father_name,address,city,state FROM `guard_master` WHERE advance_salary_applicable ='Y' AND code='".$employeeId."' LIMIT 1");
+            if($emp_data[0]->company =='Tenon'){
+                $salary_details=$this->Allmodel->join_result("SELECT bank_acc_no,ifsc_code FROM `tenon_salary` WHERE employee_code ='".$emp_data[0]->code."' ORDER BY id Desc LIMIT 1");
+            }else{
+                $salary_details=$this->Allmodel->join_result("SELECT bank_acc_no,ifsc_code FROM `pgpl_salary` WHERE employee_code ='".$emp_data[0]->code."' ORDER BY id Desc LIMIT 1"); 
+            } 
+           if(!empty($emp_data)){
+               if($emp_data[0]->gender =='M'){
+                   $gen = 'MALE';
+               }elseif($emp_data[0]->gender =='F'){
+                $gen ="FEMALE";
+               }else{
+                $gen = $emp_data[0]->gender;
+               }
+                    $dat['employeeId']=@$emp_data[0]->code;
+                    $dat['fullName']=@$emp_data[0]->name;
+                    $dat['dateOfJoining']=@$emp_data[0]->doj;
+                     $dat['dateOfbirth']=@$emp_data[0]->dob;
+                    $dat['status']=@$emp_data[0]->active=="Y"?'Active':'Deactive';                                   
+                    $dat['mobileNumber']=@$emp_data[0]->phone_number;
+                    $dat['emailId']=@$emp_data[0]->email;
+                    $dat['MonthlySalary']=@$emp_data[0]->apt_net_salary;
+                    $dat['dateOfTermination']='';
+                    $dat['gender']=@$gen;
+                    $dat['fathersName']=@$emp_data[0]->father_name;
+                    $dat['mothersName']='';
+                    $dat['PAN']='';
+                    $dat['bankAccountNumber']=@$salary_details[0]->bank_acc_no;
+                    $dat['bankAccountIFSC']=@$salary_details[0]->ifsc_code;
+                    $dat['addressLineOne']=@$emp_data[0]->address;
+                    $dat['addressLineTwo']='';
+                    $dat['city']=@$emp_data[0]->city;
+                    $dat['state']=@$emp_data[0]->state;
+                    $dat['pincode']='';
+                    
+                }else{
+                    $dat['employeeId']=$_GET['employeeId'];
+                    $dat['fullName']='';
+                    $dat['dateOfJoining']='';
+                    $dat['status']='';
+                    $dat['mobileNumber']='';
+                    $dat['emailId']='';
+                    $dat['MonthlySalary']='';
+                    $dat['dateOfTermination']='';
+                    $dat['gender']='';
+                    $dat['fathersName']='';
+                    $dat['mothersName']='';
+                    $dat['PAN']='';
+                    $dat['bankAccountNumber']='';
+                    $dat['bankAccountIFSC']='';
+                    $dat['addressLineOne']='';
+                    $dat['addressLineTwo']='';
+                    $dat['city']='';
+                    $dat['state']='';
+                    $dat['pincode']='';
+                }
+                $json_pretty = json_encode($dat,JSON_PRETTY_PRINT);
+                $log_data['user_id'] = 	$employeeId;
+                $log_data['process_name'] = 'employee info';
+                $log_data['request_data_json'] = $employeeId;
+                $log_data['response_data_json'] = $json_pretty;
+                $log_data['responseStatus'] = @$dat['fullName']?'success':'failed';
+                $log_data['count_record'] = 1;
+                $this->Allmodel->insert('advance_salary_log',$log_data);
+                echo "<pre>".$json_pretty."<pre/>";
+        }
+    }
+	public function employee_data()
+	{        
+        $emp_datas=$this->Allmodel->join_result("SELECT name,id,email,code,doj,phone_number,active,company,apt_net_salary FROM `guard_master` WHERE advance_salary_applicable ='Y'");
+      
+        if(!empty($emp_datas)){
+            
+            foreach($emp_datas as $key => $emp_data){
+                // if($emp_data->company =='Tenon'){
+                //     $salary_details=$this->Allmodel->join_result("SELECT nsalary as salary FROM `tenon_salary` WHERE employee_code ='".$emp_data->code."' LIMIT 1");
+                // }else{
+                //     $salary_details=$this->Allmodel->join_result("SELECT net_salary as salary FROM `pgpl_salary` WHERE employee_code ='".$emp_data->code."' LIMIT 1"); 
+                // }
+                
+                if($key ==0){
+                    $dats['full_name']='Fullname';                  
+                    $dats['email_id']='Email_id';
+                    $dats['mobile_number']='mobile_number';
+                    $dats['Employee_id']='Employee_id';
+                    $dats['net_salary']='net_salary';
+                    $dats['date_of_joining']='date_of_joining';                
+                    $dats['Status']='Status';  
+                    $dats['date_of_termination']='date_of_termination';
+                    $this->csv_file_create($dats);
+                    // employee_data   // table name
+                }
+                
+                $dats['full_name']=@$emp_data->name;                  
+                $dats['email_id']=@$emp_data->email;
+                $dats['mobile_number']=@$emp_data->phone_number;
+                $dats['Employee_id']=@$emp_data->code;
+                $dats['net_salary']=@$emp_data->apt_net_salary;
+                $dats['date_of_joining']=@$emp_data->doj;                
+                $dats['Status']=($emp_data->active=='Y')? 'Active':'Deactive';  
+                $dats['date_of_termination']='';
+                
+                
+                $emp_data_log['full_name']=@$emp_data->name;                  
+                $emp_data_log['email_id']=@$emp_data->email;
+                $emp_data_log['mobile_number']=@$emp_data->phone_number;
+                $emp_data_log['Employee_id']=@$emp_data->code;
+                $emp_data_log['net_salary']=@$emp_data->apt_net_salary;
+                $emp_data_log['date_of_joining']=@$emp_data->doj;                
+                $emp_data_log['Status']=($emp_data->active=='Y')? 'Active':'Deactive';  
+                $emp_data_log['date_of_termination']='';
+                
+                // $this->Allmodel->insert('employee_data',$emp_data_log);
+                
+                $this->csv_file_create($dats);
+            }    
+            
+            $f_name = date("Ymd");
+            $check = $this->creatCheckSumFile('EMPLOYEE_DETAILS_'.$f_name.'.csv');   
+            
+            
+            $log_data['process_name'] = 'employee data';
+            $log_data['request_data_json'] = 'request from crone';
+            $log_data['response_data_json'] = 'EMPLOYEE_DETAILS_'.$f_name.'csv';
+            $log_data['responseStatus'] = @$check?'success':'failed';
+            $log_data['count_record'] = count($emp_datas);
+            $this->Allmodel->insert('advance_salary_log',$log_data);
+        }   
+    }
+
+
+    public function attendance()
+	{
+		$datas=$this->Allmodel->join_result("SELECT distinct g.code, h.date from guard_attendance_history h join guard_master g on g.id = h.user_id WHERE YEAR(h.date) = YEAR(CURRENT_DATE) AND MONTH(h.date) = MONTH(CURRENT_DATE) AND in_corrected_by = 0 and g.advance_salary_applicable ='Y' ORDER BY h.date asc");
+
+        if(!empty($datas)){
+            foreach($datas as $keys => $data){
+                if($keys ==0){
+                    $dats['date']='Date';
+                    $dats['employee_id']='Employee_id';
+                    $dats['Status']='Status';
+                    $this->csv_attendance($dats);
+                }
+                $dats['date']=$data->date;
+                $dats['employee_id']=$data->code;
+                $dats['Status']='P';
+                $this->csv_attendance($dats);
+                
+                $emp_data_log['date_send']=$data->date;
+                $emp_data_log['employee_id']=$data->code;
+                $emp_data_log['Status']='P';
+                
+                // $this->Allmodel->insert('emp_attendence_data',$emp_data_log);
+            }
+            
+        
+            $f_name = date("Ymd");
+            
+            $check = $this->creatCheckSumFile('ATTENDENCE_'.$f_name.'.csv');   
+            
+            
+            /****************Creating log*******************************/
+            
+                $log_data['process_name'] = 'employee attendance data';
+                $log_data['request_data_json'] = 'request from crone';
+                $log_data['response_data_json'] = 'ATTENDENCE_'.$f_name.'.csv';
+                $log_data['responseStatus'] = @$check?'success':'failed';
+                $log_data['count_record'] = count($datas);
+                $this->Allmodel->insert('advance_salary_log',$log_data);
+                
+            /****************************************************/
+            $data=['status_code' => 200,'status'=>'success', 'attendance' => $log_data];
+            echo json_encode($data);
+        }
+    }
+
+    /**************start for attendence csv*******************/
+    
+    public function csv_attendance($dats){
+        $f_name = date("Ymd");
+        $file = new SplFileObject('advance_salary/Outgoing/ATTENDENCE_'.$f_name.'.csv', 'a');
+        $file->fputcsv($dats);
+        $file = null;
+		$data=['status_code' => 200,'status'=>'success', 'datas' => $dats];
+        echo "done";
+    }
+    
+    /**************end for attendence csv*******************/
+
+    /**************start for employee data csv*******************/
+    
+    public function csv_file_create($dats){
+        $f_name = date("Ymd");
+        $file = new SplFileObject('advance_salary/Outgoing/EMPLOYEE_DETAILS_'.$f_name.'.csv', 'a');
+        $file->fputcsv($dats);
+        $file = null;
+		$data=['status_code' => 200,'status'=>'success', 'datas' => $dats];
+        echo json_encode($data);
+    }
+
+    /**************End for employee data csv*******************/    
+
+    /*************************start Create check sum file *********************************/
+    
+    public function creatCheckSumFile($file_name){
+        $sha_data =  hash_file('sha512', 'advance_salary/Outgoing/'.$file_name);
+        $myfile = fopen('advance_salary/Outgoing/'.$file_name.'.checksum', "w");
+        if(fwrite($myfile,$sha_data)){
+            $myfile = null;
+		    $data=['status_code' => 200,'status'=>'success', 'datas' => $sha_data];
+		    return true;
+        }else{
+            $myfile = null;
+		    $data=['status_code' => 200,'status'=>'success', 'datas' => $sha_data];
+		    return false;
+        }
+    }  
+
+    /************************* end Create check sum file *********************************/
+
+
+    /*************************Start Read employee TRANSACTIONS file With Match *****************/
+    
+    public function readEmployeeTransaction(){
+        $file_name = 'TRANSACTIONS_'.date('Ymd').'.csv';
+        if(!file_exists('../../advance_salary/Incoming/'.$file_name)){
+            return print_r("no file found");
+        }
+        $get_incoming_tansaction_csv_file =  new SplFileObject('../../advance_salary/Incoming/'.$file_name, "r");
+        $sha_data =  hash_file('sha512', '../../advance_salary/Incoming/'.$file_name);
+        $file_check_sum = new SplFileObject('../../advance_salary/Incoming/'.$file_name.'.checksum', 'r');
+      
+        $data = [];  //temporary varibale
+        foreach ($get_incoming_tansaction_csv_file as $key=>$line) {
+            if($key !=0){
+                 $data[] = str_getcsv($line);
+            }
+        }  
+
+        while (!$file_check_sum->eof()) {
+            // get the current line
+            $line  =  $file_check_sum->fgets();
+        }
+        
+        if($sha_data == $line){
+           
+
+            foreach($data as $test){
+                if(count($test)>5){                  
+                   
+                    $trancation_id = @$test[0];
+                    $check_data = $this->Allmodel->selectrow('advance_salary_transactions',array('transactionId'=>$trancation_id));
+                    if(empty($check_data)){
+                        $tran_data['transactionId'] = @$test[0];
+                        $tran_data['employeeId'] =@$test[1];
+                        $tran_data['status'] =@$test[2];
+                        $tran_data['transaction_date'] = @$test[3];
+                        $tran_data['amount'] =@$test[4]; 
+                        $tran_data['to_bank_details'] =@$test[5]; 
+                        $tran_data['toAccountIfsc'] =@$test[6]; 
+                        $this->Allmodel->insert('advance_salary_transactions',$tran_data);  
+                    }else{
+                        
+                        $tran_datas['transactionId'] = @$test[0];
+                        $tran_datas['employeeId'] =@$test[1];
+                        $tran_datas['status'] =@$test[2];
+                        $tran_datas['transaction_date'] = @$test[3];
+                        $tran_datas['amount'] =@$test[4]; 
+                        $tran_datas['to_bank_details'] =@$test[5]; 
+                        $tran_datas['toAccountIfsc'] =@$test[6]; 
+                        // $tran_datas['updated_at'] =date('Y-m-d h:i:s');
+                        $this->Allmodel->update('advance_salary_transactions',$tran_datas,array('transactionId'=>$trancation_id));
+                    }
+                }
+            }
+            
+            //read csv file
+            echo "matched";
+            $check = "matched";
+            
+            $to_file_path = '../../advance_salary/Incoming/'.$file_name;
+            $move_file_path ='../../advance_salary/Incoming_hst/'.$file_name;
+            if(copy($to_file_path,$move_file_path))
+            {
+              unlink($to_file_path);
+            }
+            
+            $to_checksum_path = '../../advance_salary/Incoming/'.$file_name.'.checksum';
+            $move_checksum_path ='../../advance_salary/Incoming_hst/'.$file_name.'.checksum';
+            if(copy($to_checksum_path,$move_checksum_path))
+            {
+              unlink($to_checksum_path);
+            }
+            
+        }else{
+            
+            $to_file_path = '../../advance_salary/Incoming/'.$file_name;
+            $move_file_path ='../../advance_salary/Incoming_fail/'.$file_name;
+            if(copy($to_file_path,$move_file_path))
+            {
+              unlink($to_file_path);
+            }
+            
+            $to_checksum_path = '../../advance_salary/Incoming/'.$file_name.'.checksum';
+            $move_checksum_path ='../../advance_salary/Incoming_fail/'.$file_name.'.checksum';
+            if(copy($to_checksum_path,$move_checksum_path))
+            {
+              unlink($to_checksum_path);
+            }
+            echo "not";
+            $check = "not";
+             $this->send_mail($file_name,'ALERT: Failed checksum in Employee Transaction');
+        }
+        
+        
+        $log_data['process_name'] = 'check Employee Transaction CSV';
+        $log_data['request_data_json'] = 'request from crone';
+        $log_data['response_data_json'] = $file_name;
+        $log_data['responseStatus'] = @$check =='matched'?'success':'failed';
+        $log_data['count_record'] = count($data);
+        $this->Allmodel->insert('advance_salary_log',$log_data);
+    }
+
+    /*************************end Read employee TRANSACTIONS file With Match *****************/
+    
+    /*************************Start Read employee withdrawal file With Match *****************/
+    
+    public function readEmployeeWithdrawal(){
+        $file_name = 'WITHDRAWAL_LIMITS_'.date('Ymd').'.csv';
+        if(!file_exists('../../advance_salary/Incoming/'.$file_name)){
+            return print_r("no file found");
+        }
+        $get_incoming_withdrawal_csv_file =  new SplFileObject('../../advance_salary/Incoming/'.$file_name, "r");
+        $sha_data =  hash_file('sha512', '../../advance_salary/Incoming/'.$file_name);
+        $file_check_sum = new SplFileObject('../../advance_salary/Incoming/'.$file_name.'.checksum', 'r');
+        
+        $data = [];  //temporary varibale
+        foreach ($get_incoming_withdrawal_csv_file as $key=>$line) {
+            if($key !=0){
+                 $data[] = str_getcsv($line);
+            }
+        }
+        
+        while (!$file_check_sum->eof()) {
+            // get the current line
+            $lines  =  $file_check_sum->fgets();
+        }
+        
+       
+        if($sha_data == $lines){
+            // move data into transaction history table
+            if(count($data) !=0){
+               $emp_datas=$this->Allmodel->join_result("SELECT * FROM `advance_salary_withdrawal_limits`"); 
+               foreach($emp_datas as $move_date){
+                   $tran_data['employeeId'] = $move_date->employeeId;
+                    $tran_data['earnedAmount'] =$move_date->earnedAmount;
+                    $tran_data['maxWithdrawalAmount'] =$move_date->maxWithdrawalAmount; 
+                    $tran_data['last_date'] =$move_date->last_date; 
+                    $this->Allmodel->insert('advance_salary_withdrawal_limits_history',$tran_data);
+               }
+               $this->Allmodel->truncate_table('advance_salary_withdrawal_limits');
+               
+               foreach($data as $test){
+                    if(count($test)>2){
+                        $tran_data['employeeId'] = $test[0];
+                        $tran_data['earnedAmount'] =$test[1];
+                        $tran_data['maxWithdrawalAmount'] =$test[2]; 
+                        $tran_data['last_date'] =$test[3]; 
+                        $this->Allmodel->insert('advance_salary_withdrawal_limits',$tran_data);
+                    }
+                }
+            }
+         
+            //read csv file
+            
+           
+            echo $check = "matched";
+
+            $to_file_path = '../../advance_salary/Incoming/'.$file_name;
+            $move_file_path ='../../advance_salary/Incoming_hst/'.$file_name;
+            if(copy($to_file_path,$move_file_path))
+            {
+              unlink($to_file_path);
+            }
+            
+            $to_checksum_path = '../../advance_salary/Incoming/'.$file_name.'.checksum';
+            $move_checksum_path ='../../advance_salary/Incoming_hst/'.$file_name.'.checksum';
+            if(copy($to_checksum_path,$move_checksum_path))
+            {
+              unlink($to_checksum_path);
+            }
+            
+        }else{
+            
+            $to_file_path = '../../advance_salary/Incoming/'.$file_name;
+            $move_file_path ='../../advance_salary/Incoming_fail/'.$file_name;
+            if(copy($to_file_path,$move_file_path))
+            {
+              unlink($to_file_path);
+            }
+            
+            $to_checksum_path = '../../advance_salary/Incoming/'.$file_name.'.checksum';
+            $move_checksum_path ='../../advance_salary/Incoming_fail/'.$file_name.'.checksum';
+            if(copy($to_checksum_path,$move_checksum_path))
+            {
+              unlink($to_checksum_path);
+            }
+            $this->send_mail($file_name,'ALERT: Failed checksum in Employee Withdrawal');
+            echo  $check = "not";
+        }
+ 
+        
+        $log_data['process_name'] = 'check Employee Withdrawal limit CSV';
+        $log_data['request_data_json'] = 'request from crone';
+        $log_data['response_data_json'] = $file_name;
+        $log_data['responseStatus'] = @$check =='matched'?'success':'failed';
+        $log_data['count_record'] = count($data);
+        $this->Allmodel->insert('advance_salary_log',$log_data);
+    }
+
+    /*************************end Read employee withdrawal file With Match *****************/
+
+
+    /*************************Send mail for failed information*************/
+    public function send_mail($file_name,$process_name) {
+        
+        //User id-tenonconnect@peregrine-security.com
+
+        //Password- Welcome@123
+        
+        $from_email = "info@sspl20.com";
+        $to_email = 'himanshu@shailersolutions.com';
+        //Load email library
+        $this->load->library('email');
+        $this->email->from($from_email, $process_name);
+        $this->email->to($to_email);
+        $this->email->subject($process_name);
+        $this->email->message('Hello,
+It`s an alert that '.$file_name.' has Failed to match with '.$file_name.'.checksum. Please check it in Incoming_fail.');
+        //Send mail
+        $this->email->send();
+    }
+    /*************************end Send mail for failed information*************/
+
+    /*********************Start create json file**********************************/
+    //not in used now
+    public function jeson_file_create($filename,$dat){
+
+        echo json_encode($dat);
+        $filesize = filesize($filename);
+        if(!empty($filesize)){
+            $fp       = fopen($filename, "r+");
+            if (flock($fp, LOCK_EX)){
+                $data = json_decode(fread($fp, $filesize), true);
+                $last_item    = end($data);
+                $last_item_id = $last_item['id'];
+                $dat['id']= ++$last_item_id;
+                $data[]=$dat;
+                fseek($fp, 0);
+                ftruncate($fp, 0);
+                fwrite($fp, json_encode($data));
+                flock($fp, LOCK_UN);
+            }else{
+                echo "Unable to lock file";
+            }
+        }else{
+            $dat['id']=1;
+            $datas[]=$dat;
+            $fp = fopen('results.json', 'a');
+            fwrite($fp, json_encode($datas));
+        }
+        fclose($fp);
+    }
+    /*********************End create json file**********************************/
+
+
+
+	/*************************Refine advance salary************/
+    
+    
+ 
+}

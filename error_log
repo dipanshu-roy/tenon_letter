@@ -1,0 +1,4 @@
+[18-Nov-2021 13:08:57 UTC] PHP Warning:  POST Content-Length of 556104058 bytes exceeds the limit of 541065216 bytes in Unknown on line 0
+[23-Nov-2021 06:39:17 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home2/sspl214t/public_html/tenon_letter/application/views/appointment-letter.php on line 42
+[23-Nov-2021 06:39:32 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home2/sspl214t/public_html/tenon_letter/application/views/appointment-letter.php on line 42
+[23-Nov-2021 06:40:10 UTC] PHP Fatal error:  require_once(): Failed opening required 'https://sspl20.com/tenon_letter/dompdf/autoload.inc.php' (include_path='.:/opt/cpanel/ea-php73/root/usr/share/pear') in /home2/sspl214t/public_html/tenon_letter/application/views/appointment-letter.php on line 43

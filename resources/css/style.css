@@ -1,0 +1,41 @@
+/* Menu */
+.menu {
+ list-style-type: none;
+ margin: 0;
+ padding: 0;
+ overflow: hidden;
+ background-color: darkturquoise;
+}
+
+.menu li {
+ float: left;
+}
+
+.menu li a {
+ display: block;
+ color: white;
+ text-align: center;
+ padding: 14px 16px;
+ text-decoration: none;
+}
+
+.menu li ul{
+    display: none;
+}
+
+.menu li a:hover {
+ background-color: #2b90f5;
+}
+
+.active{
+    background: #2b90f5;
+}
+
+footer{
+    bottom: 0;
+    position: absolute;
+    border-top: 1px solid gray;
+    width: 98%;
+    padding: 20px 0px;
+    text-align: center;
+}
